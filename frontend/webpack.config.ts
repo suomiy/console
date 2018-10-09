@@ -82,6 +82,12 @@ let config: webpack.Configuration = {
             options: {
               sourceMap: true,
               outputStyle: 'compressed',
+              includePaths: [
+                './node_modules/bootstrap-sass/assets/stylesheets',
+                './node_modules/font-awesome-sass/assets/stylesheets',
+                './node_modules/patternfly/dist/sass',
+                './node_modules/patternfly-react/dist/sass'
+              ]
             }
           },
         ],
