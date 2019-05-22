@@ -1,4 +1,5 @@
 import { applyMiddleware, combineReducers, createStore } from 'redux';
+import { kubevirtReducer } from 'kubevirt-web-ui-components';
 import { reducer as formReducer } from 'redux-form';
 import thunk from 'redux-thunk';
 
@@ -13,6 +14,7 @@ const reducers = combineReducers({
   form: formReducer,
   [featureReducerName]: featureReducer,
   [monitoringReducerName]: monitoringReducer,
+  kubevirt: kubevirtReducer,
 });
 
 const store = createStore(reducers, {}, applyMiddleware(thunk));
