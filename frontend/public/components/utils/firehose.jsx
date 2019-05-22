@@ -7,16 +7,18 @@ import { Map as ImmutableMap } from 'immutable';
 import { inject, makeReduxID, makeQuery } from './index';
 import actions from '../../module/k8s/k8s-actions';
 
+const getDefaultEmptyValue = immutable => immutable ? new ImmutableMap() : {};
+
 const processReduxId = ({k8s}, props) => {
-  const {reduxID, isList, filters} = props;
+  const {reduxID, isList, filters, immutable } = props;
 
   if (!reduxID) {
-    return {};
+    return getDefaultEmptyValue(immutable);
   }
 
   if (!isList) {
     const stuff = k8s.get(reduxID);
-    return stuff ? stuff.toJS() : {};
+    return stuff ? (immutable ? stuff : stuff.toJS()) : getDefaultEmptyValue(immutable);
   }
 
   const data = k8s.getIn([reduxID, 'data']);
@@ -24,7 +26,7 @@ const processReduxId = ({k8s}, props) => {
   const selected = k8s.getIn([reduxID, 'selected']);
 
   return {
-    data: data && data.toArray().map(p => p.toJSON()),
+    data: immutable ? data : data && data.toArray().map(p => p.toJSON()),
     // This is a hack to allow filters passed down from props to make it to
     // the injected component. Ideally filters should all come from redux.
     filters: _.extend({}, _filters && _filters.toJS(), filters),
@@ -160,7 +162,7 @@ export const Firehose = connect(
     }
 
     render() {
-      const reduxes = this.firehoses.map(({id, prop, isList, filters, optional}) => ({reduxID: id, prop, isList, filters, optional}));
+      const reduxes = this.firehoses.map(({id, prop, isList, filters, immutable, optional}) => ({reduxID: id, prop, isList, filters, immutable, optional}));
       const children = inject(this.props.children, _.omit(this.props, [
         'children',
         'className',
