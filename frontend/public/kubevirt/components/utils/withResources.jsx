@@ -2,11 +2,16 @@ import * as React from 'react';
 import PropTypes from 'prop-types';
 import * as _ from 'lodash-es';
 import { connect } from 'react-redux';
-import { Map as ImmutableMap } from 'immutable';
+import { Map as ImmutableMap, Iterable } from 'immutable';
 
 import { Firehose } from '../utils/okdutils';
 import { inject } from '../../../components/utils';
 
+const getDefaultValue = configResource => configResource.immutable ? new ImmutableMap() : (configResource.isList ? [] : {});
+
+const getValue = (resource, key) => {
+  return Iterable.isIterable(resource) ? resource.get(key) : _.get(resource, key);
+};
 
 const checkErrors = (resources, onError) => {
   if (resources.length > 0) {
@@ -36,7 +41,7 @@ class Resources extends React.Component {
   static getDerivedStateFromProps({ resourceMap, resources, resourceToProps }) {
     const childrenProps = {};
     const errors = [];
-    let loaded = true;
+    let allLoaded = true;
 
     Object.keys(resourceMap).forEach(resourceKey => {
       const resourceConfig = resourceMap[resourceKey];
@@ -44,29 +49,33 @@ class Resources extends React.Component {
       const resource = _.get(resources, resourceKey);
 
       if (resource) {
-        if (resource.loaded) {
-          childrenProps[resourceKey] = resource.data;
+        const loadedResource = getValue(resource, 'loaded');
+        const data = getValue(resource, 'data');
+        const loadError = getValue(resource, 'loadError');
+
+        if (loadedResource) {
+          childrenProps[resourceKey] = data;
         } else if (resourceConfig.required) {
-          loaded = false;
+          allLoaded = false;
         }
 
-        if (!resourceConfig.ignoreErrors && resource.loadError ) {
-          childrenProps[resourceKey] = configResource.isList ? [] : {};
-          errors.push({error: resource.loadError, resourceConfig});
+        if (!resourceConfig.ignoreErrors && loadError ) {
+          childrenProps[resourceKey] = getDefaultValue(configResource);
+          errors.push({error: loadError, resourceConfig});
         }
       } else {
         // unknown resources (CRD not created in opeshift, etc..)
-        childrenProps[resourceKey] = configResource.isList ? [] : {};
+        childrenProps[resourceKey] = getDefaultValue(configResource);
       }
     });
 
     return {
       childrenProps: {
         ...childrenProps,
-        ...(resourceToProps && loaded ? resourceToProps(childrenProps) : {}),
+        ...(resourceToProps && allLoaded ? resourceToProps(childrenProps) : {}),
       },
       errors,
-      loaded,
+      loaded: allLoaded,
     };
   }
 
