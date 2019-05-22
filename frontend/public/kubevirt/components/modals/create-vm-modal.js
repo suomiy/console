@@ -17,45 +17,39 @@ import { units } from '../utils/okdutils';
 export const openCreateVmWizard = ( activeNamespace, createTemplate = false ) => {
   const launcher = modalResourceLauncher(CreateVmWizard, {
     namespaces: {
-      resource: getResource(NamespaceModel),
+      resource: getResource(NamespaceModel, { immutable: true }),
     },
     virtualMachines: {
-      resource: getResource(VirtualMachineModel),
+      resource: getResource(VirtualMachineModel, { immutable: true }),
       required: true,
     },
     userTemplates: {
-      resource: getResource(TemplateModel, {namespace: activeNamespace, prop: 'userTemplates', matchLabels: {[TEMPLATE_TYPE_LABEL]: TEMPLATE_TYPE_VM}}),
+      resource: getResource(TemplateModel, { namespace: activeNamespace, prop: 'userTemplates', matchLabels: {[TEMPLATE_TYPE_LABEL]: TEMPLATE_TYPE_VM}, immutable: true }),
     },
     commonTemplates: {
-      resource: getResource(VmTemplateModel, {namespace: 'openshift', prop: 'commonTemplates', matchLabels: {[TEMPLATE_TYPE_LABEL]: TEMPLATE_TYPE_BASE}}),
+      resource: getResource(VmTemplateModel, { namespace: 'openshift', prop: 'commonTemplates', matchLabels: {[TEMPLATE_TYPE_LABEL]: TEMPLATE_TYPE_BASE}, immutable: true }),
     },
     networkConfigs: {
-      resource: getResource(NetworkAttachmentDefinitionModel, {namespace: activeNamespace}),
+      resource: getResource(NetworkAttachmentDefinitionModel, { namespace: activeNamespace, immutable: true }),
     },
     storageClasses: {
-      resource:  getResource(StorageClassModel),
+      resource:  getResource(StorageClassModel, { immutable: true }),
     },
     persistentVolumeClaims: {
-      resource:  getResource(PersistentVolumeClaimModel, {namespace: activeNamespace}),
+      resource:  getResource(PersistentVolumeClaimModel, { namespace: activeNamespace,immutable: true }),
     },
     dataVolumes: {
-      resource:  getResource(DataVolumeModel, {namespace: activeNamespace}),
+      resource:  getResource(DataVolumeModel, { namespace: activeNamespace,immutable: true }),
     },
-  },(({namespaces, userTemplates, commonTemplates}) => {
+  },(({namespaces}) => {
       let selectedNamespace;
 
       if (namespaces && activeNamespace){
-        selectedNamespace = namespaces.find(namespace => namespace.metadata.name === activeNamespace);
-      }
-
-      let templates;
-      if (userTemplates && commonTemplates) {
-        templates = userTemplates.concat(commonTemplates);
+        selectedNamespace = namespaces.find(namespace => namespace.getIn(['metadata', 'name']) === activeNamespace);
       }
 
       return {
         selectedNamespace,
-        templates,
       };
     }));
 
