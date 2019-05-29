@@ -8,17 +8,21 @@ import { Firehose } from '../utils/okdutils';
 import { inject } from '../../../components/utils';
 
 
-const checkErrors = (resources, onError) => {
-  if (resources.length > 0) {
+const checkErrors = (errorResources, onError) => {
+  if (errorResources.length > 0) {
     if (onError) {
-      onError(resources);
+      onError(errorResources);
     }
-    resources.forEach(resource => {
-      const errorMessage = _.get(resource.error, 'json.message',`Error occured while loading ${resource.resourceConfig.resource.kind}`);
-      const errorCode = _.get(resource.error, 'json.code', '');
-      const error = errorCode ? `${errorCode}: ${errorMessage}` : errorMessage;
-      console.warn(error);// eslint-disable-line
-    });
+    errorResources
+      .forEach(({error, resourceConfig}) => {
+        const errorCode = _.get(error, 'json.code', '');
+        const errorReason = _.get(error, 'json.reason');
+        if (errorCode !== 404 && errorReason !== 'NotFound'){
+          const errorMessage = _.get(error, 'json.message',`Error occured while loading ${resourceConfig.resource.kind}`);
+          const reportMessage = errorCode ? `${errorCode}: ${errorMessage}` : errorMessage;
+          console.warn(reportMessage);// eslint-disable-line
+        }
+      });
   }
 };
 
