@@ -21,8 +21,8 @@ export const openCreateVmWizard = ( activeNamespace, createTemplate = false ) =>
       resource: getResource(NamespaceModel),
     },
     virtualMachines: {
-      resource: getResource(VirtualMachineModel),
-      required: true,
+      resource: getResource(VirtualMachineModel, {namespace: activeNamespace}),
+      requiredIfAuthorized: true,
     },
     userTemplates: {
       resource: getResource(TemplateModel, {namespace: activeNamespace, prop: 'userTemplates', matchLabels: {[TEMPLATE_TYPE_LABEL]: TEMPLATE_TYPE_VM}}),
