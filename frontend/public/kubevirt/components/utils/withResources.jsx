@@ -46,6 +46,8 @@ class Resources extends React.Component {
       if (resource) {
         if (resource.loaded) {
           childrenProps[resourceKey] = resource.data;
+        } else if (resourceConfig.requiredIfAuthorized && _.get(resource, 'loadError.json.code') !== 403){
+          loaded = false;
         } else if (resourceConfig.required) {
           loaded = false;
         }
