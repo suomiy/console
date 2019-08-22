@@ -1,4 +1,5 @@
 import { applyMiddleware, combineReducers, createStore, compose } from 'redux';
+import { kubevirtReducer } from '@console/kubevirt-plugin/src/utils/redux/reducers';
 
 import { featureReducer, featureReducerName, FeatureState } from './reducers/features';
 import { monitoringReducer, monitoringReducerName, MonitoringState } from './reducers/monitoring';
@@ -33,6 +34,7 @@ export type RootState = {
   [featureReducerName]: FeatureState;
   [monitoringReducerName]: MonitoringState;
   dashboards: DashboardsState;
+  kubevirt: any;
 };
 
 const reducers = combineReducers<RootState>({
@@ -41,6 +43,7 @@ const reducers = combineReducers<RootState>({
   [featureReducerName]: featureReducer,
   [monitoringReducerName]: monitoringReducer,
   dashboards: dashboardsReducer,
+  kubevirt: kubevirtReducer,
 });
 
 const store = createStore(reducers, {}, composeEnhancers(applyMiddleware(thunk)));
