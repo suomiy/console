@@ -10,6 +10,7 @@ import {
   VMWizardNetwork,
   VMWizardStorage,
   VMWizardTab,
+  VMWizardStorageType,
 } from '../types';
 import { DeviceType } from '../../../constants/vm';
 
@@ -53,6 +54,7 @@ export enum InternalActionType {
   SetNetworks = 'KubevirtVMWizardSetNetworks',
   SetStorages = 'KubevirtVMWizardSetStorages',
   SetResults = 'KubevirtVMWizardSetResults',
+  UpdateBus = 'KubevirtVMWizardUpdateBus',
 }
 
 export type WizardInternalAction = {
@@ -72,6 +74,7 @@ export type WizardInternalAction = {
     network?: VMWizardNetwork;
     networkID?: string;
     storage?: VMWizardStorage;
+    storageType?: VMWizardStorageType;
     storageID?: string;
     deviceID?: string;
     deviceType?: DeviceType;

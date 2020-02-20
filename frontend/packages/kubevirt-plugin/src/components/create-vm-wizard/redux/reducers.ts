@@ -1,6 +1,6 @@
 import * as _ from 'lodash';
 import { fromJS, Map as ImmutableMap } from 'immutable';
-import { VMSettingsField, VMWizardTab } from '../types';
+import { VMSettingsField, VMWizardTab, VMWizardStorageType } from '../types';
 import { iGet } from '../../../utils/immutable';
 import { DeviceType } from '../../../constants/vm';
 import { InternalActionType, WizardInternalAction } from './types';
@@ -113,6 +113,25 @@ const updateIDItemInList = (state, path, item?) => {
   });
 };
 
+const updateStorageTypeItemInList = (state, path, storageType, newValue) => {
+  const indexOfListToUpdate = state.getIn(path).findIndex((listItem) => {
+    return listItem.get('type') === storageType;
+  });
+  if (indexOfListToUpdate === -1) {
+    return state;
+  }
+  switch (storageType) {
+    case VMWizardStorageType.PROVISION_SOURCE_DISK ||
+      VMWizardStorageType.V2V_VMWARE_IMPORT ||
+      VMWizardStorageType.V2V_VMWARE_IMPORT_TEMP:
+      return state.setIn([...path, indexOfListToUpdate, 'disk', 'disk', 'bus'], newValue);
+    case VMWizardStorageType.WINDOWS_GUEST_TOOLS:
+      return state.setIn([...path, indexOfListToUpdate, 'disk', 'cdrom', 'bus'], newValue);
+    default:
+      return state;
+  }
+};
+
 const removeIDItemFromList = (state, path, itemID?) => {
   return state.updateIn(path, (items) => {
     const networkIndex = itemID == null ? -1 : items.findIndex((t) => iGet(t, 'id') === itemID);
@@ -155,6 +174,13 @@ export default (state, action: WizardInternalAction) => {
         state,
         [dialogID, 'tabs', VMWizardTab.STORAGE, 'value'],
         payload.storageID,
+      );
+    case InternalActionType.UpdateBus:
+      return updateStorageTypeItemInList(
+        state,
+        [dialogID, 'tabs', VMWizardTab.STORAGE, 'value'],
+        payload.storageType,
+        payload.value,
       );
     case InternalActionType.SetDeviceBootOrder:
       return setDeviceBootOrder(

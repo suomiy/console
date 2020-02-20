@@ -6,6 +6,7 @@ import {
   VMWizardNetwork,
   VMWizardStorage,
   VMWizardTab,
+  VMWizardStorageType,
 } from '../types';
 import { DeviceType } from '../../../constants/vm';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -163,6 +164,14 @@ export const vmWizardInternalActions: VMWizardInternalActions = {
       storageID,
     },
     type: InternalActionType.RemoveStorage,
+  }),
+  [InternalActionType.UpdateBus]: (id, storageType: VMWizardStorageType, value: string) => ({
+    payload: {
+      id,
+      storageType,
+      value,
+    },
+    type: InternalActionType.UpdateBus,
   }),
   [InternalActionType.SetDeviceBootOrder]: (
     id,
