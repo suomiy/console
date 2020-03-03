@@ -1,11 +1,14 @@
-import * as _ from 'lodash';
+import { ValidationErrorType } from '@console/shared/src';
 import {
   hasVmSettingsChanged,
   iGetProvisionSource,
 } from '../../../selectors/immutable/vm-settings';
 import { VMSettingsField, VMWizardStorage, VMWizardStorageType } from '../../../types';
 import { InternalActionType, UpdateOptions } from '../../types';
-import { iGetProvisionSourceStorage } from '../../../selectors/immutable/storage';
+import {
+  hasStoragesChanged,
+  iGetProvisionSourceStorage,
+} from '../../../selectors/immutable/storage';
 import { getProvisionSourceStorage } from '../../initial-state/storage-tab-initial-state';
 import { VolumeWrapper } from '../../../../../k8s/wrapper/vm/volume-wrapper';
 import { DataVolumeWrapper } from '../../../../../k8s/wrapper/vm/data-volume-wrapper';
@@ -14,7 +17,8 @@ import { getNextIDResolver } from '../../../../../utils/utils';
 import { getStorages } from '../../../selectors/selectors';
 import { vmWizardInternalActions } from '../../internal-actions';
 import { getTemplateValidation } from '../../../selectors/template';
-import { DiskBus } from '../../../../../constants/vm/storage/disk-bus';
+import { TemplateValidations } from '../../../../../utils/validations/template/template-validations';
+import { DiskWrapper, MutableDiskWrapper } from '../../../../../k8s/wrapper/vm/disk-wrapper';
 
 export const prefillInitialDiskUpdater = ({ id, prevState, dispatch, getState }: UpdateOptions) => {
   const state = getState();
@@ -59,43 +63,61 @@ export const prefillInitialDiskUpdater = ({ id, prevState, dispatch, getState }:
   }
 };
 
-export const diskBusUpdater = ({ id, prevState, dispatch, getState }: UpdateOptions) => {
+export const internalStorageDiskBusUpdater = ({
+  id,
+  prevState,
+  dispatch,
+  getState,
+}: UpdateOptions) => {
   const state = getState();
 
+  // we care only about the first TemplateValidation because storage shows up after the first step
   const oldValidations = getTemplateValidation(prevState, id);
   const newValidations = getTemplateValidation(state, id);
 
-  const isValidationsChanged =
-    newValidations && oldValidations ? !newValidations.isEqual(oldValidations) : !!newValidations;
+  if (
+    TemplateValidations.areBusesEqual(oldValidations, newValidations) &&
+    !hasStoragesChanged(prevState, state, id)
+  ) {
+    return;
+  }
 
-  if (isValidationsChanged) {
-    let isBusValid = true;
-    const iOldSourceStorage = iGetProvisionSourceStorage(state, id);
-    const oldSourceStorage: VMWizardStorage = iOldSourceStorage && iOldSourceStorage.toJSON();
+  let someBusChanged = false;
 
-    const newSourceStorage = getProvisionSourceStorage(iGetProvisionSource(state, id));
-    const allowedBuses = newValidations.getAllowedBuses();
-
-    ['disk.disk.bus', 'disk.cdrom.bus'].forEach((busPath) => {
-      const busType = _.get(newSourceStorage, busPath);
-      if (busType && !allowedBuses.has(DiskBus.fromString(busType))) {
-        _.set(newSourceStorage, busPath, newValidations.getDefaultBus().getValue());
-        isBusValid = false;
-      }
-    });
-
-    if (!isBusValid) {
-      dispatch(
-        vmWizardInternalActions[InternalActionType.UpdateStorage](id, {
-          id: oldSourceStorage ? oldSourceStorage.id : getNextIDResolver(getStorages(state, id))(),
-          ...newSourceStorage,
-        }),
+  const updatedStorages = getStorages(state, id).map(({ type, disk, ...storageBundle }) => {
+    let finalDisk = disk;
+    if (
+      [
+        VMWizardStorageType.PROVISION_SOURCE_DISK,
+        VMWizardStorageType.V2V_VMWARE_IMPORT,
+        VMWizardStorageType.V2V_VMWARE_IMPORT_TEMP,
+        VMWizardStorageType.WINDOWS_GUEST_TOOLS,
+      ].includes(type)
+    ) {
+      const resultValidation = newValidations.validateBus(
+        DiskWrapper.initialize(disk).getDiskBus(),
       );
+      if (!resultValidation.isValid && resultValidation.type === ValidationErrorType.Error) {
+        someBusChanged = true;
+        finalDisk = new MutableDiskWrapper(disk, true)
+          .appendTypeData({ bus: newValidations.getDefaultBus() })
+          .asMutableResource();
+      }
     }
+
+    return {
+      ...storageBundle,
+      type,
+      disk: finalDisk,
+    };
+  });
+
+  if (someBusChanged) {
+    dispatch(vmWizardInternalActions[InternalActionType.SetStorages](id, updatedStorages));
   }
 };
 
 export const updateStorageTabState = (options: UpdateOptions) =>
-  [prefillInitialDiskUpdater, diskBusUpdater].forEach((updater) => {
+  [prefillInitialDiskUpdater, internalStorageDiskBusUpdater].forEach((updater) => {
     updater && updater(options);
   });
