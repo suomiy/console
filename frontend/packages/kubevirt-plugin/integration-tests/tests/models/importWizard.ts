@@ -1,4 +1,5 @@
 /* eslint-disable no-await-in-loop */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { browser } from 'protractor';
 import { createItemButton, isLoaded } from '@console/internal-integration-tests/views/crud.view';
 import { click, fillInput, asyncForEach } from '@console/shared/src/test-utils/utils';
@@ -18,12 +19,12 @@ import {
 import * as view from '../../views/importWizard.view';
 import { waitForNoLoaders, clickKebabAction } from '../../views/wizard.view';
 import {
-  vmwareConfig,
+  InstanceConfig,
   rhvConfig,
+  vmwareConfig,
   VirtualMachineTemplateModel,
   VMImportConfig,
 } from '../utils/types';
-// import { VirtualMachineTemplateModel, VMImportConfig } from '../utils/types';
 import { Wizard } from './wizard';
 import { virtualizationTitle } from '../../views/vms.list.view';
 import { K8sKind } from '@console/internal/module/k8s';
@@ -86,11 +87,22 @@ export class ImportWizard extends Wizard {
     await fillInput(view.ovirtCertInput, certificate);
   }
 
+  async rhvSelectCluster(cluster: string) {
+    await selectOptionByText(view.ovirtClusterSelect, cluster);
+  }
+
+  // export const ovirtVmSelect = $('#ovirt-vm-dropdown');
+  // export const ovirtConnectButton = $('#provider-ovirt-connect');
+
+  async rhvVmSelect(vmname: string) {
+    await selectOptionByText(view.ovirtVmSelect, vmname);
+  }
+
   async saveInstance(saveInstance: boolean) {
     await setCheckboxState(view.vcenterSaveInstanceCheckbox, saveInstance);
   }
 
-  // async configureInstance(instanceConfig: vmwareConfig) {
+  // async configureInstance(instanceConfig: InstanceConfig) {
   //   await selectOptionByText(view.vcenterInstanceSelect, instanceConfig.instance);
   //   if (instanceConfig.instance === IMPORT_WIZARD_CONN_TO_NEW_INSTANCE) {
   //     await this.fillHostname(instanceConfig.hostname);
@@ -117,7 +129,7 @@ export class ImportWizard extends Wizard {
     await this.saveInstance(instanceConfig.saveInstance);
   }
 
-  async configureInstance(instanceConfig: vmwareConfig | rhvConfig, provider: string) {
+  async configureInstance(instanceConfig: InstanceConfig, provider: string) {
     await selectOptionByText(view.vcenterInstanceSelect, instanceConfig.instance);
     if (instanceConfig.instance === IMPORT_WIZARD_CONN_TO_NEW_INSTANCE) {
       if (provider === VMWARE_PROVIDER) {
@@ -169,7 +181,7 @@ export class ImportWizard extends Wizard {
       } else {
         throw Error('No available networks to assign imported NICs');
       }
-      await await click(saveButton);
+      await click(saveButton);
       await waitForNoLoaders();
     });
   }
@@ -211,19 +223,15 @@ export class ImportWizard extends Wizard {
     await isLoaded();
   }
 
-// <<<<<<< HEAD
   /**
    * Waits for loading icon on Import tab to disappear.
    * As the icon disappears and re-appears several times when loading VM details
    * we need to sample it's presence multiple times to make sure all data is loaded.
    */
-// =======
-// >>>>>>> Adding support for migration from RHV
   async waitForSpinner() {
     // TODO: In a followup, we should use this implementation of waitFor and
     // deprecate the one we have in kubevirt-plugin/integration-tests/utils/utils.ts
     // because this is more general
-// <<<<<<< HEAD
     const waitFor = async (
       func: () => Promise<boolean>,
       interval = 1500,
@@ -237,12 +245,6 @@ export class ImportWizard extends Wizard {
         if (attemptNumber > attempts) {
           throw Error('Exceeded number of attempts');
         }
-// =======
-    const waitFor = async (func, interval = 1500, count = 4) => {
-      let sequenceNumber = 0;
-      let res;
-      while (sequenceNumber !== count) {
-// >>>>>>> Adding support for migration from RHV
         res = await func();
         if (res) {
           sequenceNumber += 1;
@@ -258,15 +260,6 @@ export class ImportWizard extends Wizard {
       return !(await view.spinnerIcon.isPresent());
     });
   }
-
-  // async import(config: VMImportConfig) {
-  //   const { provider } = config;
-  //   const importWizard = new ImportWizard();
-  //   await importWizard.openWizard(VirtualMachineModel);
-  //   if (provider === 'VMware') {
-  //     await this.vmwareImport(config);
-  //   }
-  // }
 
   async import(config: VMImportConfig) {
     const {
@@ -298,53 +291,55 @@ export class ImportWizard extends Wizard {
 
     await importWizard.next(true);
 
-    if (operatingSystem) {
-      await importWizard.selectOperatingSystem(operatingSystem as string);
-    }
-    if (flavorConfig) {
-      await importWizard.selectFlavor(flavorConfig);
-    }
-    if (workloadProfile) {
-      await importWizard.selectWorkloadProfile(workloadProfile);
-    }
-    if (name) {
-      await importWizard.fillName(name);
-    }
-    if (description) {
-      await importWizard.fillDescription(description);
-    }
-    await importWizard.next();
-    // Networking
-    // First update imported network interfaces to comply with k8s
-    await importWizard.updateImportedNICs();
-    // Optionally add new interfaces, if any
-    if (networkResources) {
-      for (const NIC of networkResources) {
-        await importWizard.addNIC(NIC);
+    // All the rest should be performed if provider is VMWare
+    if (provider === VMWARE_PROVIDER) {
+      if (operatingSystem) {
+        await importWizard.selectOperatingSystem(operatingSystem as string);
       }
-    }
-    await importWizard.next();
-
-    // Storage
-    // First update disks that come from the source VM
-    await importWizard.updateImportedDisks();
-    // Optionally add new disks
-    if (networkResources) {
-      for (const disk of storageResources) {
-        await importWizard.addDisk(disk);
+      if (flavorConfig) {
+        await importWizard.selectFlavor(flavorConfig);
       }
+      if (workloadProfile) {
+        await importWizard.selectWorkloadProfile(workloadProfile);
+      }
+      if (name) {
+        await importWizard.fillName(name);
+      }
+      if (description) {
+        await importWizard.fillDescription(description);
+      }
+      await importWizard.next();
+      // Networking
+      // First update imported network interfaces to comply with k8s
+      await importWizard.updateImportedNICs();
+      // Optionally add new interfaces, if any
+      if (networkResources) {
+        for (const NIC of networkResources) {
+          await importWizard.addNIC(NIC);
+        }
+      }
+      await importWizard.next();
+
+      // Storage
+      // First update disks that come from the source VM
+      await importWizard.updateImportedDisks();
+      // Optionally add new disks
+      if (networkResources) {
+        for (const disk of storageResources) {
+          await importWizard.addDisk(disk);
+        }
+      }
+      await importWizard.next();
+
+      // Advanced - Cloud Init
+      if (cloudInit) {
+        await importWizard.configureCloudInit(cloudInit);
+      }
+      await importWizard.next();
+
+      // Advanced - Virtual HW
+      await importWizard.next();
     }
-    await importWizard.next();
-
-    // Advanced - Cloud Init
-    if (cloudInit) {
-      await importWizard.configureCloudInit(cloudInit);
-    }
-    await importWizard.next();
-
-    // Advanced - Virtual HW
-    await importWizard.next();
-
     // Review
     await this.validateReviewTab(config);
 

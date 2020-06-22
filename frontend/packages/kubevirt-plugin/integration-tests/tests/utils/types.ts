@@ -95,12 +95,12 @@ export type rhvConfig = {
   saveInstance?: boolean;
 };
 
-export type instance = vmwareConfig | rhvConfig;
+export type InstanceConfig = vmwareConfig | rhvConfig;
 
 export type VMImportConfig = {
   name: string;
   provider: string;
-  instanceConfig: instance;
+  instanceConfig: InstanceConfig;
   sourceVMName: string;
   description?: string;
   operatingSystem?: OperatingSystem;
