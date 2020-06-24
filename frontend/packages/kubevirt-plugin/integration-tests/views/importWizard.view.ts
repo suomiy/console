@@ -10,7 +10,7 @@ export const vcenterHostnameInput = $('#vcenter-hostname-dropdown');
 export const usernameInput = $('#vcenter-username');
 export const vcenterPasswordInput = $('#vcenter-password');
 export const vcenterSaveInstanceCheckbox = $('#vcenter-remember-credentials');
-export const connectInstanceButton = $('#provider-vmware-connect');
+export const connectVmwareInstanceButton = $('#provider-vmware-connect');
 export const vmwarePodStatusLoader = $('#v2v-vmware-status-status');
 export const virtualMachineSelect = $('#vcenter-vm-dropdown');
 
@@ -29,4 +29,5 @@ export const ovirtUsernameInput = $('#ovirt-engine-username');
 export const ovirtPasswordInput = $('#ovirt-engine-password');
 export const ovirtClusterSelect = $('#ovirt-cluster-dropdown');
 export const ovirtVmSelect = $('#ovirt-vm-dropdown');
-export const ovirtConnectButton = $('#provider-ovirt-connect');
+export const connectRhvInstanceButton = $('#provider-ovirt-connect');
+export const editButton = element(by.buttonText('Edit'));

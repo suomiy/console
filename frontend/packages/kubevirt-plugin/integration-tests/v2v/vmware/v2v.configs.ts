@@ -1,9 +1,9 @@
-import { VMImportConfig } from '../tests/utils/types';
+import { VMImportConfig } from '../../tests/utils/types';
 import {
   IMPORT_WIZARD_CONN_TO_NEW_INSTANCE,
   IMPORT_WIZARD_CONN_NAME_PREFIX,
-} from '../tests/utils/consts';
-import { OperatingSystem, WorkloadProfile, Flavor } from '../tests/utils/constants/wizard';
+} from '../../tests/utils/consts';
+import { OperatingSystem, WorkloadProfile, Flavor } from '../../tests/utils/constants/wizard';
 
 const { V2V_INSTANCE_HOSTNAME, V2V_INSTANCE_USERNAME, V2V_INSTANCE_PASSWORD } = process.env;
 
@@ -41,7 +41,7 @@ export const importConfigs = [vmwareVMConfig, vmwareVMMultiNicConfig];
 
 // Configuration for 2 VMs created one by one to re-use existing VMWare instance
 export const vmware2VMsConfig1: VMImportConfig = {
-  name: 'v2v-rhel7-igor-imported',
+  name: 'v2v-rhel7-imported-1',
   sourceVMName: 'v2v-rhel7-igor',
   provider: 'VMware',
   instanceConfig: {
@@ -56,7 +56,7 @@ export const vmware2VMsConfig1: VMImportConfig = {
 };
 
 export const vmware2VMsConfig2: VMImportConfig = {
-  name: 'v2v-rhel7-igor-imported',
+  name: 'v2v-rhel7-imported-2',
   sourceVMName: 'v2v-rhel7-igor',
   provider: 'VMware',
   instanceConfig: {
@@ -100,6 +100,7 @@ function getFlavorConfig(currentFlavor: Flavor, currentProfile: WorkloadProfile)
 export const flavorWorkloadConfigs = [];
 
 const flavors = [Flavor.TINY, Flavor.SMALL, Flavor.MEDIUM, Flavor.LARGE];
+
 const profiles = [
   WorkloadProfile.DESKTOP,
   WorkloadProfile.SERVER,

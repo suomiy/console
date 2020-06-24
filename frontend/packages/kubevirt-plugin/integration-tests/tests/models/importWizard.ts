@@ -24,6 +24,8 @@ import {
   vmwareConfig,
   VirtualMachineTemplateModel,
   VMImportConfig,
+  NetworkResource,
+  StorageResource,
 } from '../utils/types';
 import { Wizard } from './wizard';
 import { virtualizationTitle } from '../../views/vms.list.view';
@@ -84,15 +86,14 @@ export class ImportWizard extends Wizard {
   }
 
   async rhvFillCertificate(certificate: string) {
+    // eslint-disable-next-line no-console
+    console.log(`Certificate for this env is:\n${certificate}`);
     await fillInput(view.ovirtCertInput, certificate);
   }
 
-  async rhvSelectCluster(cluster: string) {
-    await selectOptionByText(view.ovirtClusterSelect, cluster);
+  async rhvSelectCluster(instanceConfig: rhvConfig) {
+    await selectOptionByText(view.ovirtClusterSelect, instanceConfig.cluster);
   }
-
-  // export const ovirtVmSelect = $('#ovirt-vm-dropdown');
-  // export const ovirtConnectButton = $('#provider-ovirt-connect');
 
   async rhvVmSelect(vmname: string) {
     await selectOptionByText(view.ovirtVmSelect, vmname);
@@ -102,17 +103,9 @@ export class ImportWizard extends Wizard {
     await setCheckboxState(view.vcenterSaveInstanceCheckbox, saveInstance);
   }
 
-  // async configureInstance(instanceConfig: InstanceConfig) {
-  //   await selectOptionByText(view.vcenterInstanceSelect, instanceConfig.instance);
-  //   if (instanceConfig.instance === IMPORT_WIZARD_CONN_TO_NEW_INSTANCE) {
-  //     await this.fillHostname(instanceConfig.hostname);
-  //     await this.fillUsername(instanceConfig.username);
-  //     await this.fillPassword(instanceConfig.password);
-  //     await this.saveInstance(instanceConfig.saveInstance);
-  //   } else {
-  //     throw Error('Saved provider instances are not implemented');
-  //   }
-  // }
+  async saveRhvInstance(saveInstance: boolean) {
+    await setCheckboxState(view.connectRhvInstanceButton, saveInstance);
+  }
 
   async configureVMwareProvider(instanceConfig: vmwareConfig) {
     await this.vmwareFillHostname(instanceConfig.hostname);
@@ -123,14 +116,18 @@ export class ImportWizard extends Wizard {
 
   async configureRHVProvider(instanceConfig: rhvConfig) {
     await this.rhvFillApi(instanceConfig.apiUrl);
+    await this.rhvFillCertificate(instanceConfig.certificate);
     await this.rhvFillUsername(instanceConfig.username);
     await this.rhvFillPassword(instanceConfig.password);
-    await this.rhvFillCertificate(instanceConfig.certificate);
-    await this.saveInstance(instanceConfig.saveInstance);
+    await this.saveRhvInstance(instanceConfig.saveInstance);
   }
 
   async configureInstance(instanceConfig: InstanceConfig, provider: string) {
-    await selectOptionByText(view.vcenterInstanceSelect, instanceConfig.instance);
+    if (provider === VMWARE_PROVIDER) {
+      await selectOptionByText(view.vcenterInstanceSelect, instanceConfig.instance);
+    } else if (provider === RHV_PROVIDER) {
+      await selectOptionByText(view.ovirtInstanceSelect, instanceConfig.instance);
+    }
     if (instanceConfig.instance === IMPORT_WIZARD_CONN_TO_NEW_INSTANCE) {
       if (provider === VMWARE_PROVIDER) {
         await this.configureVMwareProvider(instanceConfig);
@@ -142,8 +139,12 @@ export class ImportWizard extends Wizard {
     }
   }
 
-  async connectToInstance() {
-    await click(view.connectInstanceButton);
+  async connectToVmwareInstance() {
+    await click(view.connectVmwareInstanceButton);
+  }
+
+  async connectToRhvInstance() {
+    await click(view.connectRhvInstanceButton);
   }
 
   async selectSourceVirtualMachine(sourceVirtualMachine: string) {
@@ -261,11 +262,35 @@ export class ImportWizard extends Wizard {
     });
   }
 
-  async import(config: VMImportConfig) {
+  async addVmNetworks(networkResources: NetworkResource[]) {
+    // Networking
+    // First update imported network interfaces to comply with k8s
+    await this.updateImportedNICs();
+    // Optionally add new interfaces, if any
+    if (networkResources) {
+      for (const NIC of networkResources) {
+        await this.addNIC(NIC);
+      }
+    }
+  }
+
+  async addVmStorage(storageResources: StorageResource[]) {
+    // Storage
+    // First update disks that come from the source VM
+    await this.updateImportedDisks();
+    // Optionally add new disks
+    if (storageResources) {
+      for (const disk of storageResources) {
+        await this.addDisk(disk);
+      }
+    }
+  }
+
+  async vmwareImport(config: VMImportConfig) {
     const {
-      provider,
-      instanceConfig,
-      sourceVMName,
+      // provider,
+      // instanceConfig,
+      // sourceVMName,
       name,
       description,
       operatingSystem,
@@ -275,6 +300,73 @@ export class ImportWizard extends Wizard {
       networkResources,
       cloudInit,
     } = config;
+    await this.connectToVmwareInstance();
+    await this.waitForSpinner();
+
+    if (operatingSystem) {
+      await this.selectOperatingSystem(operatingSystem as string);
+    }
+
+    if (operatingSystem) {
+      await this.selectOperatingSystem(operatingSystem as string);
+    }
+    if (flavorConfig) {
+      await this.selectFlavor(flavorConfig);
+    }
+    if (workloadProfile) {
+      await this.selectWorkloadProfile(workloadProfile);
+    }
+    if (name) {
+      await this.fillName(name);
+    }
+    if (description) {
+      await this.fillDescription(description);
+    }
+    await this.next();
+    await this.addVmNetworks(networkResources);
+    await this.next();
+    await this.addVmStorage(storageResources);
+    await this.next();
+
+    // Advanced - Cloud Init
+    if (cloudInit) {
+      await this.configureCloudInit(cloudInit);
+    }
+    await this.next();
+
+    // Advanced - Virtual HW
+    await this.next();
+  }
+
+  async rhvImport(config: VMImportConfig) {
+    const { instanceConfig, sourceVMName, storageResources, networkResources } = config;
+    // Selecting RHV cluster, this flow differs from VMWare
+    await this.connectToRhvInstance();
+    await this.waitForSpinner();
+
+    await this.rhvSelectCluster(instanceConfig);
+    // Selecting source VM
+    await this.selectSourceVirtualMachine(sourceVMName);
+    await this.waitForSpinner();
+    // Clicking `edit` button to reach network and storage settings
+    await click(view.editButton);
+    await this.next;
+    // Impossible to do changes of flavor, workload profile and/or OS, page is read-only
+    await this.next;
+    this.addVmNetworks(networkResources);
+    await this.next;
+    this.addVmStorage(storageResources);
+    await this.next;
+    // CloudInit page is in read-only mode
+    await this.next;
+    // Additional devices page is in read-only mode
+    await this.next;
+
+    // Exiting and getting back to main import cause it is common for all providers
+  }
+
+  async import(config: VMImportConfig) {
+    const { provider, instanceConfig, name } = config;
     const importWizard = new ImportWizard();
     await importWizard.openWizard(VirtualMachineModel);
 
@@ -283,63 +375,14 @@ export class ImportWizard extends Wizard {
     await importWizard.waitForSpinner();
     await importWizard.configureInstance(instanceConfig, provider);
 
-    await importWizard.connectToInstance();
-    await importWizard.waitForSpinner();
-
-    await importWizard.selectSourceVirtualMachine(sourceVMName);
-    await importWizard.waitForSpinner();
-
-    await importWizard.next(true);
-
-    // All the rest should be performed if provider is VMWare
+    // Splitting logic depending on provider (VMWare or RHV for a moment)
     if (provider === VMWARE_PROVIDER) {
-      if (operatingSystem) {
-        await importWizard.selectOperatingSystem(operatingSystem as string);
-      }
-      if (flavorConfig) {
-        await importWizard.selectFlavor(flavorConfig);
-      }
-      if (workloadProfile) {
-        await importWizard.selectWorkloadProfile(workloadProfile);
-      }
-      if (name) {
-        await importWizard.fillName(name);
-      }
-      if (description) {
-        await importWizard.fillDescription(description);
-      }
-      await importWizard.next();
-      // Networking
-      // First update imported network interfaces to comply with k8s
-      await importWizard.updateImportedNICs();
-      // Optionally add new interfaces, if any
-      if (networkResources) {
-        for (const NIC of networkResources) {
-          await importWizard.addNIC(NIC);
-        }
-      }
-      await importWizard.next();
-
-      // Storage
-      // First update disks that come from the source VM
-      await importWizard.updateImportedDisks();
-      // Optionally add new disks
-      if (networkResources) {
-        for (const disk of storageResources) {
-          await importWizard.addDisk(disk);
-        }
-      }
-      await importWizard.next();
-
-      // Advanced - Cloud Init
-      if (cloudInit) {
-        await importWizard.configureCloudInit(cloudInit);
-      }
-      await importWizard.next();
-
-      // Advanced - Virtual HW
-      await importWizard.next();
+      await this.vmwareImport(config);
+    } else if (provider === RHV_PROVIDER) {
+      await this.rhvImport(config);
     }
+
+    // The rest is relevant for both VMWare and RHV
     // Review
     await this.validateReviewTab(config);
 
