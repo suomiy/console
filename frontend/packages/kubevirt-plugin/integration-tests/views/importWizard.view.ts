@@ -14,6 +14,8 @@ export const connectVmwareInstanceButton = $('#provider-vmware-connect');
 export const vmwarePodStatusLoader = $('#v2v-vmware-status-status');
 export const virtualMachineSelect = $('#vcenter-vm-dropdown');
 
+export const vmNameHelper = $('#vm-name-helper');
+
 export const spinnerIcon = $('svg.fa-spin');
 export const connectionWarning = $('h4.pf-c-alert__title');
 
@@ -21,13 +23,6 @@ export const seeDetailPageButton = element(by.buttonText('See virtual machine de
 
 export const importButon = element(by.buttonText('Import'));
 
-// RHV
-export const ovirtInstanceSelect = $('#ovirt-engine-dropdown');
-export const ovirtApiInput = $('#ovirt-engine-api-url');
-export const ovirtCertInput = $('#ovirt-engine-certificate');
-export const ovirtUsernameInput = $('#ovirt-engine-username');
-export const ovirtPasswordInput = $('#ovirt-engine-password');
-export const ovirtClusterSelect = $('#ovirt-cluster-dropdown');
-export const ovirtVmSelect = $('#ovirt-vm-dropdown');
-export const connectRhvInstanceButton = $('#provider-ovirt-connect');
-export const editButton = element(by.buttonText('Edit'));
+export const nextButton = element(by.buttonText('Next'));
+
+export const confirmActionButton = $('#confirm-action');

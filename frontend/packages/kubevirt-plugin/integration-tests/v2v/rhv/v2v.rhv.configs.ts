@@ -1,5 +1,8 @@
-import { VMImportConfig } from '../../tests/utils/types';
-import { IMPORT_WIZARD_CONN_TO_NEW_INSTANCE } from '../../tests/utils/consts';
+import { VMImportConfig, InstanceConfig } from '../../tests/utils/types';
+import {
+  IMPORT_WIZARD_CONN_NAME_PREFIX,
+  IMPORT_WIZARD_CONN_TO_NEW_INSTANCE,
+} from '../../tests/utils/consts';
 
 const {
   V2V_INSTANCE_API_URL,
@@ -9,65 +12,55 @@ const {
   V2V_INSTANCE_CLUSTER,
 } = process.env;
 
+const newInstanceConfig: InstanceConfig = {
+  instance: IMPORT_WIZARD_CONN_TO_NEW_INSTANCE,
+  apiUrl: V2V_INSTANCE_API_URL,
+  username: V2V_INSTANCE_USERNAME,
+  password: V2V_INSTANCE_PASSWORD,
+  certificate: V2V_INSTANCE_CA_CERT,
+  cluster: V2V_INSTANCE_CLUSTER,
+  saveInstance: false,
+};
+
+const exInstanceConfig: InstanceConfig = {
+  instance: IMPORT_WIZARD_CONN_NAME_PREFIX,
+  apiUrl: V2V_INSTANCE_API_URL,
+  username: V2V_INSTANCE_USERNAME,
+  password: V2V_INSTANCE_PASSWORD,
+  certificate: V2V_INSTANCE_CA_CERT,
+  cluster: V2V_INSTANCE_CLUSTER,
+  saveInstance: false,
+};
+
+export const vmName = 'cirros-vm-for-tests';
+export const RHV = 'Red Hat Virtualization (RHV)';
+
 export const rhvVMConfig: VMImportConfig = {
-  name: `'N/A'`,
-  sourceVMName: 'rhel7-vm',
-  provider: 'Red Hat Virtualization (RHV)',
-  instanceConfig: {
-    instance: IMPORT_WIZARD_CONN_TO_NEW_INSTANCE,
-    apiUrl: V2V_INSTANCE_API_URL,
-    username: V2V_INSTANCE_USERNAME,
-    password: V2V_INSTANCE_PASSWORD,
-    certificate: V2V_INSTANCE_CA_CERT,
-    cluster: V2V_INSTANCE_CLUSTER,
-    saveInstance: false,
-  },
+  name: 'cirros-vm-migrated-rhv',
+  description: 'Automated test for migration from RHV',
+  sourceVMName: vmName,
+  provider: RHV,
+  instanceConfig: newInstanceConfig,
 };
 
 export const rhvVMMultiNicConfig: VMImportConfig = {
-  name: `'N/A'`,
+  name: '',
   sourceVMName: 'rhel7-vm',
   provider: 'Red Hat Virtualization (RHV)',
-  instanceConfig: {
-    instance: IMPORT_WIZARD_CONN_TO_NEW_INSTANCE,
-    apiUrl: V2V_INSTANCE_API_URL,
-    username: V2V_INSTANCE_USERNAME,
-    password: V2V_INSTANCE_PASSWORD,
-    certificate: V2V_INSTANCE_CA_CERT,
-    cluster: V2V_INSTANCE_CLUSTER,
-    saveInstance: false,
-  },
+  instanceConfig: newInstanceConfig,
 };
 
 // Configuration for 2 VMs created one by one to re-use existing RHV instance
 export const rhvVMConfig1: VMImportConfig = {
-  name: `'N/A'`,
+  name: '',
   sourceVMName: 'rhel7-vm',
   provider: 'Red Hat Virtualization (RHV)',
-  instanceConfig: {
-    instance: IMPORT_WIZARD_CONN_TO_NEW_INSTANCE,
-    apiUrl: V2V_INSTANCE_API_URL,
-    username: V2V_INSTANCE_USERNAME,
-    password: V2V_INSTANCE_PASSWORD,
-    certificate: V2V_INSTANCE_CA_CERT,
-    cluster: V2V_INSTANCE_CLUSTER,
-    saveInstance: false,
-  },
+  instanceConfig: newInstanceConfig,
 };
 
 export const rhvVMConfig2: VMImportConfig = {
-  name: `'N/A'`,
+  name: '',
   sourceVMName: 'rhel7-vm',
   provider: 'Red Hat Virtualization (RHV)',
-  instanceConfig: {
-    instance: IMPORT_WIZARD_CONN_TO_NEW_INSTANCE,
-    apiUrl: V2V_INSTANCE_API_URL,
-    username: V2V_INSTANCE_USERNAME,
-    password: V2V_INSTANCE_PASSWORD,
-    certificate: V2V_INSTANCE_CA_CERT,
-    cluster: V2V_INSTANCE_CLUSTER,
-    saveInstance: false,
-  },
+  instanceConfig: exInstanceConfig,
 };
-
-export const rhvVMConfig2VMs = [rhvVMConfig1, rhvVMConfig2];

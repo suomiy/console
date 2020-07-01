@@ -6,11 +6,11 @@ import {
   deleteResources,
 } from '@console/shared/src/test-utils/utils';
 import { multusNAD } from '../../tests/utils/mocks';
-import { ImportWizard } from '../../tests/models/importWizard';
+import { VmwareImportWizard } from '../../tests/models/vmwareImportWizard';
 
 describe('Kubevirt create VM using wizard', () => {
   const leakedResources = new Set<string>();
-  const wizard = new ImportWizard();
+  const wizard = new VmwareImportWizard();
 
   beforeAll(async () => {
     createResources([multusNAD]);

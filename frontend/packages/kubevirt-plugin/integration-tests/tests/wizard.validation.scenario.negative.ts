@@ -7,6 +7,8 @@ import {
   KEBAP_ACTION,
   PAGE_LOAD_TIMEOUT_SECS,
   NOT_RECOMMENDED_BUS_TYPE_WARN,
+  CHARACTERS_NOT_ALLOWED,
+  SEC,
 } from './utils/consts';
 import {
   Flavor,
@@ -14,6 +16,7 @@ import {
   ProvisionConfigName,
   WorkloadProfile,
 } from './utils/constants/wizard';
+import { vmNameHelper } from '../views/importWizard.view';
 import { Wizard } from './models/wizard';
 import { FlavorConfig } from './utils/types';
 import { customFlavorMemoryHintBlock, clickKebabAction, diskWarning } from '../views/wizard.view';
@@ -99,8 +102,6 @@ describe('Wizard validation', () => {
     await wizard.selectFlavor(customFlavorSufficientMemory);
     await wizard.selectWorkloadProfile(WorkloadProfile.DESKTOP);
     await wizard.fillName(WRONG_VM_NAME);
-    // await browser.wait(
-    //   waitForStringInElement()
-    // )
+    await browser.wait(waitForStringInElement(vmNameHelper, CHARACTERS_NOT_ALLOWED), 2 * SEC);
   });
 });
