@@ -10,12 +10,20 @@ import { selectOptionByText, setCheckboxState } from '../utils/utils';
 import {
   IMPORT_WIZARD_CONN_TO_NEW_INSTANCE,
   networkTabCol,
+  RHV_PROVIDER,
   STORAGE_CLASS,
   VIRTUALIZATION_TITLE,
+  VMWARE_PROVIDER,
 } from '../utils/consts';
 import * as view from '../../views/importWizard.view';
 import { waitForNoLoaders, clickKebabAction } from '../../views/wizard.view';
-import { InstanceConfig, VirtualMachineTemplateModel, VMImportConfig } from '../utils/types';
+import {
+  vmwareConfig,
+  rhvConfig,
+  VirtualMachineTemplateModel,
+  VMImportConfig,
+} from '../utils/types';
+// import { VirtualMachineTemplateModel, VMImportConfig } from '../utils/types';
 import { Wizard } from './wizard';
 import { virtualizationTitle } from '../../views/vms.list.view';
 import { K8sKind } from '@console/internal/module/k8s';
@@ -50,29 +58,73 @@ export class ImportWizard extends Wizard {
     await selectOptionByText(view.vcenterInstanceSelect, instance);
   }
 
-  async fillHostname(hostname: string) {
+  async vmwareFillHostname(hostname: string) {
     await fillInput(view.vcenterHostnameInput, hostname);
   }
 
-  async fillUsername(username: string) {
+  async vmwareFillUsername(username: string) {
     await fillInput(view.usernameInput, username);
   }
 
-  async fillPassword(password: string) {
+  async vmwareFillPassword(password: string) {
     await fillInput(view.vcenterPasswordInput, password);
+  }
+
+  async rhvFillApi(apiUrl: string) {
+    await fillInput(view.ovirtApiInput, apiUrl);
+  }
+
+  async rhvFillUsername(username: string) {
+    await fillInput(view.ovirtUsernameInput, username);
+  }
+
+  async rhvFillPassword(password: string) {
+    await fillInput(view.ovirtPasswordInput, password);
+  }
+
+  async rhvFillCertificate(certificate: string) {
+    await fillInput(view.ovirtCertInput, certificate);
   }
 
   async saveInstance(saveInstance: boolean) {
     await setCheckboxState(view.vcenterSaveInstanceCheckbox, saveInstance);
   }
 
-  async configureInstance(instanceConfig: InstanceConfig) {
+  // async configureInstance(instanceConfig: vmwareConfig) {
+  //   await selectOptionByText(view.vcenterInstanceSelect, instanceConfig.instance);
+  //   if (instanceConfig.instance === IMPORT_WIZARD_CONN_TO_NEW_INSTANCE) {
+  //     await this.fillHostname(instanceConfig.hostname);
+  //     await this.fillUsername(instanceConfig.username);
+  //     await this.fillPassword(instanceConfig.password);
+  //     await this.saveInstance(instanceConfig.saveInstance);
+  //   } else {
+  //     throw Error('Saved provider instances are not implemented');
+  //   }
+  // }
+
+  async configureVMwareProvider(instanceConfig: vmwareConfig) {
+    await this.vmwareFillHostname(instanceConfig.hostname);
+    await this.vmwareFillUsername(instanceConfig.username);
+    await this.vmwareFillPassword(instanceConfig.password);
+    await this.saveInstance(instanceConfig.saveInstance);
+  }
+
+  async configureRHVProvider(instanceConfig: rhvConfig) {
+    await this.rhvFillApi(instanceConfig.apiUrl);
+    await this.rhvFillUsername(instanceConfig.username);
+    await this.rhvFillPassword(instanceConfig.password);
+    await this.rhvFillCertificate(instanceConfig.certificate);
+    await this.saveInstance(instanceConfig.saveInstance);
+  }
+
+  async configureInstance(instanceConfig: vmwareConfig | rhvConfig, provider: string) {
     await selectOptionByText(view.vcenterInstanceSelect, instanceConfig.instance);
     if (instanceConfig.instance === IMPORT_WIZARD_CONN_TO_NEW_INSTANCE) {
-      await this.fillHostname(instanceConfig.hostname);
-      await this.fillUsername(instanceConfig.username);
-      await this.fillPassword(instanceConfig.password);
-      await this.saveInstance(instanceConfig.saveInstance);
+      if (provider === VMWARE_PROVIDER) {
+        await this.configureVMwareProvider(instanceConfig);
+      } else if (provider === RHV_PROVIDER) {
+        await this.configureRHVProvider(instanceConfig);
+      }
     } else {
       throw Error('Saved provider instances are not implemented');
     }
@@ -159,15 +211,19 @@ export class ImportWizard extends Wizard {
     await isLoaded();
   }
 
+// <<<<<<< HEAD
   /**
    * Waits for loading icon on Import tab to disappear.
    * As the icon disappears and re-appears several times when loading VM details
    * we need to sample it's presence multiple times to make sure all data is loaded.
    */
+// =======
+// >>>>>>> Adding support for migration from RHV
   async waitForSpinner() {
     // TODO: In a followup, we should use this implementation of waitFor and
     // deprecate the one we have in kubevirt-plugin/integration-tests/utils/utils.ts
     // because this is more general
+// <<<<<<< HEAD
     const waitFor = async (
       func: () => Promise<boolean>,
       interval = 1500,
@@ -181,6 +237,12 @@ export class ImportWizard extends Wizard {
         if (attemptNumber > attempts) {
           throw Error('Exceeded number of attempts');
         }
+// =======
+    const waitFor = async (func, interval = 1500, count = 4) => {
+      let sequenceNumber = 0;
+      let res;
+      while (sequenceNumber !== count) {
+// >>>>>>> Adding support for migration from RHV
         res = await func();
         if (res) {
           sequenceNumber += 1;
@@ -196,6 +258,15 @@ export class ImportWizard extends Wizard {
       return !(await view.spinnerIcon.isPresent());
     });
   }
+
+  // async import(config: VMImportConfig) {
+  //   const { provider } = config;
+  //   const importWizard = new ImportWizard();
+  //   await importWizard.openWizard(VirtualMachineModel);
+  //   if (provider === 'VMware') {
+  //     await this.vmwareImport(config);
+  //   }
+  // }
 
   async import(config: VMImportConfig) {
     const {
@@ -217,7 +288,7 @@ export class ImportWizard extends Wizard {
     // General section
     await importWizard.selectProvider(provider);
     await importWizard.waitForSpinner();
-    await importWizard.configureInstance(instanceConfig);
+    await importWizard.configureInstance(instanceConfig, provider);
 
     await importWizard.connectToInstance();
     await importWizard.waitForSpinner();

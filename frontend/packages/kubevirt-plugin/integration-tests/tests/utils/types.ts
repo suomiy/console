@@ -77,7 +77,7 @@ export type KubevirtResourceConfig = {
   bootableDevice?: string;
 };
 
-export type InstanceConfig = {
+export type vmwareConfig = {
   instance?: string;
   hostname?: string;
   username?: string;
@@ -85,10 +85,22 @@ export type InstanceConfig = {
   saveInstance?: boolean;
 };
 
+export type rhvConfig = {
+  instance?: string;
+  apiUrl?: string;
+  certificate?: string;
+  username?: string;
+  password?: string;
+  cluster?: string;
+  saveInstance?: boolean;
+};
+
+export type instance = vmwareConfig | rhvConfig;
+
 export type VMImportConfig = {
   name: string;
   provider: string;
-  instanceConfig: InstanceConfig;
+  instanceConfig: instance;
   sourceVMName: string;
   description?: string;
   operatingSystem?: OperatingSystem;
