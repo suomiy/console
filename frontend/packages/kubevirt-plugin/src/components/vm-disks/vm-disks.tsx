@@ -6,13 +6,14 @@ import { sortable } from '@patternfly/react-table';
 import { QuestionCircleIcon } from '@patternfly/react-icons';
 import { RowFunction, Table, MultiListPage } from '@console/internal/components/factory';
 import { PersistentVolumeClaimModel, TemplateModel } from '@console/internal/models';
-import { Firehose, FirehoseResult } from '@console/internal/components/utils';
+import { FirehoseResult } from '@console/internal/components/utils';
 import { useSafetyFirst } from '@console/internal/components/safety-first';
 import { K8sResourceKind, TemplateKind } from '@console/internal/module/k8s';
+import { useK8sWatchResource } from '@console/internal/components/utils/k8s-watch-hook';
 import { dimensifyHeader, getNamespace } from '@console/shared';
 import { DataVolumeModel, VirtualMachineModel, VirtualMachineInstanceModel } from '../../models';
 import { VMGenericLikeEntityKind } from '../../types/vmLike';
-import { getResource, getLoadedData } from '../../utils';
+import { getResource } from '../../utils';
 import { wrapWithProgress } from '../../utils/utils';
 import { diskModalEnhanced } from '../modals/disk-modal/disk-modal-enhanced';
 import { CombinedDiskFactory } from '../../k8s/wrapper/vm/combined-disk';
@@ -26,7 +27,7 @@ import {
   getTemplateValidationsFromTemplate,
 } from '../../selectors/vm-template/selectors';
 import { diskSourceFilter } from './table-filters';
-import { VMLikeEntityTabProps, VMTabProps } from '../vms/types';
+import { VMTabProps } from '../vms/types';
 import { getVMStatus } from '../../statuses/vm/vm-status';
 import { FileSystemsList } from './guest-agent-file-systems';
 import { isVMRunningOrExpectedRunning } from '../../selectors/vm/selectors';
@@ -151,20 +152,24 @@ export const VMDisksTable: React.FC<React.ComponentProps<typeof Table> | VMDisks
   );
 };
 
-type VMDisksProps = {
-  vmLikeEntity?: VMGenericLikeEntityKind;
-  pvcs?: FirehoseResult<K8sResourceKind[]>;
-  datavolumes?: FirehoseResult<V1alpha1DataVolume[]>;
-  vmTemplate?: FirehoseResult<TemplateKind>;
+type VMDisksProps = VMTabProps & {
   vmi?: VMIKind;
 };
 
-export const VMDisks: React.FC<VMDisksProps> = ({ vmLikeEntity, vmTemplate, vmi }) => {
+export const VMDisks: React.FC<VMDisksProps> = ({ obj: vmLikeEntity, vmi }) => {
+  const vmTemplateQuery = getVMTemplateNamespacedName(vmLikeEntity);
+  const [vmTemplate] = useK8sWatchResource<TemplateKind>({
+    kind: TemplateModel.kind,
+    name: vmTemplateQuery?.name,
+    namespace: vmTemplateQuery?.namespace,
+    isList: false,
+  });
   const { t } = useTranslation();
+
   const namespace = getNamespace(vmLikeEntity);
   const [isLocked, setIsLocked] = useSafetyFirst(false);
   const withProgress = wrapWithProgress(setIsLocked);
-  const templateValidations = getTemplateValidationsFromTemplate(getLoadedData(vmTemplate));
+  const templateValidations = getTemplateValidationsFromTemplate(vmTemplate);
   const isVMRunning = isVM(vmLikeEntity) && isVMRunningOrExpectedRunning(asVM(vmLikeEntity));
   const pendingChangesDisks: Set<string> = vmi
     ? new Set(changedDisks(new VMWrapper(asVM(vmLikeEntity)), new VMIWrapper(vmi)))
@@ -227,47 +232,18 @@ export const VMDisks: React.FC<VMDisksProps> = ({ vmLikeEntity, vmTemplate, vmi 
   );
 };
 
-export const VMDisksFirehose: React.FC<VMLikeEntityTabProps> = ({ obj: vmLikeEntity }) => {
-  const vmTemplate = getVMTemplateNamespacedName(vmLikeEntity);
-
-  const resources = [
-    getResource(TemplateModel, {
-      name: vmTemplate?.name,
-      namespace: vmTemplate?.namespace,
-      isList: false,
-      prop: 'vmTemplate',
-    }),
-  ];
-
-  return (
-    <Firehose resources={resources}>
-      <VMDisks vmLikeEntity={vmLikeEntity} />
-    </Firehose>
-  );
-};
-
-export const VMDisksAndFileSystemsPage: React.FC<VMTabProps> = ({
-  obj: vmLikeEntity,
-  vm: vmProp,
-  vmis: vmisProp,
-  vmImports,
-  pods,
-  migrations,
-  pvcs,
-  dataVolumes,
-  customData: { kindObj },
-}) => {
-  const vmTemplate = getVMTemplateNamespacedName(vmLikeEntity);
-
-  const resources = [
-    getResource(TemplateModel, {
-      name: vmTemplate?.name,
-      namespace: vmTemplate?.namespace,
-      isList: false,
-      prop: 'vmTemplate',
-    }),
-  ];
-
+export const VMDisksAndFileSystemsPage: React.FC<VMTabProps> = (props) => {
+  const {
+    obj: vmLikeEntity,
+    vm: vmProp,
+    vmis: vmisProp,
+    vmImports,
+    pods,
+    migrations,
+    pvcs,
+    dataVolumes,
+    customData: { kindObj },
+  } = props;
   const vm =
     kindObj === VirtualMachineModel && isVM(vmLikeEntity)
       ? vmLikeEntity
@@ -292,9 +268,9 @@ export const VMDisksAndFileSystemsPage: React.FC<VMTabProps> = ({
   });
 
   return (
-    <Firehose resources={resources}>
-      <VMDisks vmLikeEntity={vmLikeEntity} vmi={vmi} />
+    <>
+      <VMDisks {...props} vmi={vmi} />
       <FileSystemsList vmi={vmi} vmStatusBundle={vmStatusBundle} />
-    </Firehose>
+    </>
   );
 };

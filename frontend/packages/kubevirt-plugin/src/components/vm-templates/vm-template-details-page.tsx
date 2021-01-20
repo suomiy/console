@@ -10,7 +10,7 @@ import {
   TemplateKind,
 } from '@console/internal/module/k8s';
 import { PersistentVolumeClaimModel, PodModel, TemplateModel } from '@console/internal/models';
-import { VMDisksFirehose } from '../vm-disks';
+import { VMDisks } from '../vm-disks/vm-disks';
 import { VMNics } from '../vm-nics';
 import { VMTemplateDetails } from './vm-template-details';
 import { match as routerMatch } from 'react-router';
@@ -90,7 +90,7 @@ export const VMTemplateDetailsPage: React.FC<VMTemplateDetailsPageProps> = (prop
   const disksPage = {
     href: 'disks',
     name: t('kubevirt-plugin~Disks'),
-    component: VMDisksFirehose,
+    component: VMDisks,
   };
 
   const pages = [navFactory.details(VMTemplateDetails), navFactory.editYaml(), nicsPage, disksPage];
